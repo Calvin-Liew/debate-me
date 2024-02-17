@@ -3,12 +3,16 @@ import openai
 import json
 import database
 
+import os
+from dotenv import load_dotenv
+load_dotenv()
+
 database_instance = database.database_conn()
 
 app = Flask(__name__)
 
 
-
+openai.api_key = os.getenv('OPENAIKEY')
 openai.api_key = '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'
 
 
