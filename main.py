@@ -69,6 +69,8 @@ def judge_debate_content(user_id, debate_topic, user_beginning_debate, gpt_respo
         cur_level += 1
     database_instance.add_user_info(user_id, cur_level, cur_exp)
 
+    # work with losses and wins and call db
+
     prompt = {
         "prompt": f"Debate Topic: {debate_topic}\nUser's Beginning Debate:\n{user_beginning_debate}\nGPT Response:\n{gpt_response}\nUser's Reply to GPT Response:\n{users_reply}\n\n"
                   f"Please provide feedback and scores for the following categories:\n- Argument Clarity:\n- Depth of Analysis:\n- "
@@ -212,10 +214,15 @@ def create_user():
     database_instance.add_user_elo(user_id,200)
     return "user created"
 
-# @app.route('/get_leaderboard', methods=['POST'])
-# def get_leaderboard():
-#     # don't really need any data from the caller
-#     data = request.json
+ @app.route('/get_leaderboard', methods=['GET'])
+def get_leaderboard():
+     response_arr = database_instance.get_top_5_elo()
+     #
+     for val in response_arr:
+         ans.append(val[])
+
+def get_user_data():
+
 
 if __name__ == "__main__":
     app.run(debug=True)
