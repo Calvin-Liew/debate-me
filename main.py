@@ -130,7 +130,8 @@ def judge_debate_content(user_id, debate_topic, user_beginning_debate, gpt_respo
         return None
 
 
-def generate_opposing_response(debate_topic, user_transcript, elo):
+def generate_opposing_response(debate_topic, user_transcript, user_id):
+    elo = database_instance.get_user_elo(user_id)
     difficulty_level = elo // 100 + 1 if elo <= 1000 else 10
 
     prompt = f"Debate topic: {debate_topic}\nOppose the following user transcript: \"{user_transcript}\"\nDifficulty Level: {difficulty_level}"
@@ -179,9 +180,9 @@ def generate_opposing_response_route():
     data = request.get_json()
     debate_topic = data.get('debate_topic')
     user_transcript = data.get('user_transcript')
-    elo = data.get('elo')
+    user_id = data.get('user_id')
 
-    opposing_response = generate_opposing_response(debate_topic, user_transcript, elo)
+    opposing_response = generate_opposing_response(debate_topic, user_transcript, user_id)
     return jsonify(opposing_response)
 
 @app.route('/')
@@ -213,8 +214,8 @@ def generate_response():
     data = request.json
     debate_topic = data.get('debate_topic')
     user_transcript = data.get('user_transcript')
-    elo = data.get('elo')
-    return generate_opposing_response(debate_topic, user_transcript, elo)
+    user_id = data.get('user_id')
+    return generate_opposing_response(debate_topic, user_transcript, user_id)
 
 @app.route('/add_user_elo', methods=['POST'])
 def add_elo():
