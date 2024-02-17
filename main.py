@@ -242,15 +242,20 @@ def create_user():
 @app.route('/get_leaderboard', methods=['GET'])
 def get_leaderboard():
      response_arr = database_instance.get_top_5_elo()
-     #
      ans = []
-     for val in response_arr:
-         ans.append(val[0])
+     for x in range(5):
+         user_id = response_arr[x][0]
+         ans.append(response_arr)
 
+# TODO: HOW DO I RETURN THIS PROPERLY BACK TO THEM?
+@app.route('/get_user', methods=['GET', 'POST'])
 def get_user_data():
     data = request.json
     #username, level, exp, win, losses, dpa, interests, elo
+    ans = {}
     user_id = data.get('user_id')
+    ans["username"] = database_instance.get_user_login(user_id)[0]
+    username = database_instance.get_user_login(user_id)[0]
     user_info = database_instance.get_user_info(user_id)
     level = user_info[0]
     exp = user_info[1]
@@ -262,8 +267,9 @@ def get_user_data():
     user_interests = database_instance.get_user_interests(user_id)
     for val in user_interests:
         interests.append(val[0])
-    user_name = database_instance.get_user_login(user_id)[0]
-    elo = database_instance.get_user_elo(user_id)
+    elo = database_instance.get_user_elo(user_id)[0]
+    return ans
+
 
 
 
