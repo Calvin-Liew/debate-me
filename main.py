@@ -239,14 +239,32 @@ def create_user():
     database_instance.add_user_elo(user_id,200)
     return "user created"
 
- @app.route('/get_leaderboard', methods=['GET'])
+@app.route('/get_leaderboard', methods=['GET'])
 def get_leaderboard():
      response_arr = database_instance.get_top_5_elo()
      #
+     ans = []
      for val in response_arr:
-         ans.append(val[])
+         ans.append(val[0])
 
 def get_user_data():
+    data = request.json
+    #username, level, exp, win, losses, dpa, interests, elo
+    user_id = data.get('user_id')
+    user_info = database_instance.get_user_info(user_id)
+    level = user_info[0]
+    exp = user_info[1]
+    user_winrate = database_instance.get_user_winrate(user_id)
+    win = user_winrate[0]
+    loss = user_winrate[1]
+    dpa = user_winrate[2]
+    interests = []
+    user_interests = database_instance.get_user_interests(user_id)
+    for val in user_interests:
+        interests.append(val[0])
+    user_name = database_instance.get_user_login(user_id)[0]
+    elo = database_instance.get_user_elo(user_id)
+
 
 
 if __name__ == "__main__":

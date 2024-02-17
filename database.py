@@ -204,6 +204,11 @@ class database_conn:
         response = self.cur.fetchall()
         return response
 
+    def get_top_5_elo(self) -> list:
+        # write some random query that works
+        a = 0
+
+
     def _check_db(self) -> None:
         # don't use this function, only used for testing
         self.cur.execute("SELECT * FROM users_login");
