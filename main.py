@@ -55,19 +55,6 @@ def increaseElo(user_id, actual_outcome, gamemode="normal"):
 
 def judge_debate_content(user_id, debate_topic, user_beginning_debate, gpt_response, users_reply, difficulty,
                          gamemode="normal"):
-    if gamemode == "normal":
-        exp = 1000
-    else:
-        exp = 2000
-
-    cur_user_data = database_instance.get_user_info(user_id)
-    print(cur_user_data)
-    cur_exp = cur_user_data[1] + exp
-    cur_level = cur_user_data[0]
-    while cur_exp >= next_level(cur_level):
-        cur_exp -= next_level(cur_level)
-        cur_level += 1
-    database_instance.add_user_info(user_id, cur_level, cur_exp)
 
     prompt = {
         "prompt": f"Debate Topic: {debate_topic}\nUser's Beginning Debate:\n{user_beginning_debate}\nGPT Response:\n{gpt_response}\nUser's Reply to GPT Response:\n{users_reply}\n\n"
@@ -99,13 +86,43 @@ def judge_debate_content(user_id, debate_topic, user_beginning_debate, gpt_respo
 
         aggregate_score = feedback_json.get('Aggregate Score', None)
 
-        # Deal with the win 
+        # Deal with the win
         if(aggregate_score > difficulty):
-            pass
+            # increase the user's exp and levels if they win
+            if gamemode == "normal":
+                exp = 1000
+            else:
+                exp = 2000
+            cur_user_data = database_instance.get_user_info(user_id)
+            print(cur_user_data)
+            cur_exp = cur_user_data[1] + exp
+            cur_level = cur_user_data[0]
+            while cur_exp >= next_level(cur_level):
+                cur_exp -= next_level(cur_level)
+                cur_level += 1
+            database_instance.add_user_info(user_id, cur_level, cur_exp)
+
+            # add wins and losses
+            cur_user_wins = database_instance.get_user_winrate(user_id)
+            cur_user_wins[0] += 1
+            # caculates the new DPA and rounds it off by 2 digits
+            cur_user_wins[2] = round((cur_user_wins[0]/cur_user_wins[0]+cur_user_wins[1]) * 4.0,2)
+
         # deal with the loss
         else:
-            pass
+            cur_user_wins = database_instance.get_user_winrate(user_id)
+            cur_user_wins[1] += 1
+            # caculates the new DPA and rounds it off by 2 digits
+            cur_user_wins[2] = round((cur_user_wins[0]/cur_user_wins[0]+cur_user_wins[1]) * 4.0,2)
 
+        # new wins and DPA are saved
+        database_instance.add_user_winrate(user_id,cur_user_wins[0],cur_user_wins[1],cur_user_wins[2])
+        # this handles the changes in user elo
+        cur_elo = database_instance.get_user_elo(user_id)[0]
+        elo_delta = aggregate_score - difficulty
+        if gamemode == "crazy":
+            elo_delta *= 2
+        database_instance.add_user_elo(user_id, cur_elo + elo_delta)
         return feedback_json
 
     except Exception as e:
