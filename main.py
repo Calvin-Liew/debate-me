@@ -2,7 +2,7 @@ from flask import Flask, request, jsonify
 import openai
 import json
 import database
-
+import railway
 
 database_instance = database.database_conn()
 
@@ -14,7 +14,7 @@ with open("config.json") as f:
 
 
 #openai.api_key = file["openai"]
-openai.api_key = env("openai")
+openai.api_key = railway.env('openai')
 
 def generate_debate_prompts(gamemode, interested_subjects):
     prompts = {}
