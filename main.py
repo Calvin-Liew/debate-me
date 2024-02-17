@@ -120,12 +120,13 @@ def generate_prompts():
 @app.route('/judge_debate', methods=['POST'])
 def judge_debate():
     data = request.json
+    user_id = data.get('user_id')
     debate_topic = data.get('debate_topic')
     user_beginning_debate = data.get('user_beginning_debate')
     gpt_response = data.get('gpt_response')
     users_reply = data.get('users_reply')
     gamemode = data.get('gamemode')
-    return jsonify(judge_debate_content(debate_topic, user_beginning_debate, gpt_response, users_reply, gamemode))
+    return jsonify(judge_debate_content(user_id, debate_topic, user_beginning_debate, gpt_response, users_reply, gamemode))
 
 
 @app.route('/generate_opposing_response', methods=['POST'])
@@ -159,10 +160,10 @@ def create_user():
     database_instance.add_user_elo(user_id,200)
     return "user created"
 
-@app.route('/get_leaderboard', methods=['POST'])
-def get_leaderboard():
-    # don't really need any data from the caller
-    data = request.json
+# @app.route('/get_leaderboard', methods=['POST'])
+# def get_leaderboard():
+#     # don't really need any data from the caller
+#     data = request.json
 
 
 
