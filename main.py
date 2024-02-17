@@ -53,7 +53,7 @@ def increaseElo(user_id, actual_outcome, gamemode="normal"):
     database_instance.add_user_elo(user_id, added_elo)
 
 
-def judge_debate_content(user_id, debate_topic, user_beginning_debate, gpt_response, users_reply,
+def judge_debate_content(user_id, debate_topic, user_beginning_debate, gpt_response, users_reply, difficulty,
                          gamemode="normal"):
     if gamemode == "normal":
         exp = 1000
@@ -68,8 +68,6 @@ def judge_debate_content(user_id, debate_topic, user_beginning_debate, gpt_respo
         cur_exp -= next_level(cur_level)
         cur_level += 1
     database_instance.add_user_info(user_id, cur_level, cur_exp)
-
-    # work with losses and wins and call db
 
     prompt = {
         "prompt": f"Debate Topic: {debate_topic}\nUser's Beginning Debate:\n{user_beginning_debate}\nGPT Response:\n{gpt_response}\nUser's Reply to GPT Response:\n{users_reply}\n\n"
@@ -98,6 +96,16 @@ def judge_debate_content(user_id, debate_topic, user_beginning_debate, gpt_respo
         feedback_json = json.loads(response_json)
 
         feedback_json['feedback_text'] = response.choices[0].text.strip()
+
+        aggregate_score = feedback_json.get('Aggregate Score', None)
+
+        # Deal with the win 
+        if(aggregate_score > difficulty):
+            pass
+        # deal with the loss
+        else:
+            pass
+
         return feedback_json
 
     except Exception as e:
