@@ -131,7 +131,8 @@ def judge_debate_content(user_id, debate_topic, user_beginning_debate, gpt_respo
         return None
 
 
-def generate_opposing_response(debate_topic, user_transcript, elo):
+def generate_opposing_response(debate_topic, user_transcript, user_id):
+    elo = database_instance.get_user_elo(user_id)
     difficulty_level = elo // 100 + 1 if elo <= 1000 else 10
 
     prompt = f"Debate topic: {debate_topic}\nOppose the following user transcript: \"{user_transcript}\"\nDifficulty Level: {difficulty_level}"
@@ -180,9 +181,9 @@ def generate_opposing_response_route():
     data = request.get_json()
     debate_topic = data.get('debate_topic')
     user_transcript = data.get('user_transcript')
-    elo = data.get('elo')
+    user_id = data.get('user_id')
 
-    opposing_response = generate_opposing_response(debate_topic, user_transcript, elo)
+    opposing_response = generate_opposing_response(debate_topic, user_transcript, user_id)
     return jsonify(opposing_response)
 
 @app.route('/')
@@ -214,8 +215,8 @@ def generate_response():
     data = request.json
     debate_topic = data.get('debate_topic')
     user_transcript = data.get('user_transcript')
-    elo = data.get('elo')
-    return generate_opposing_response(debate_topic, user_transcript, elo)
+    user_id = data.get('user_id')
+    return generate_opposing_response(debate_topic, user_transcript, user_id)
 
 @app.route('/add_user_elo', methods=['POST'])
 def add_elo():
@@ -243,15 +244,20 @@ def create_user():
 @app.route('/get_leaderboard', methods=['GET'])
 def get_leaderboard():
      response_arr = database_instance.get_top_5_elo()
-     #
      ans = []
-     for val in response_arr:
-         ans.append(val[0])
+     for x in range(5):
+         user_id = response_arr[x][0]
+         ans.append(response_arr)
 
+# TODO: HOW DO I RETURN THIS PROPERLY BACK TO THEM?
+@app.route('/get_user', methods=['GET', 'POST'])
 def get_user_data():
     data = request.json
     #username, level, exp, win, losses, dpa, interests, elo
+    ans = {}
     user_id = data.get('user_id')
+    ans["username"] = database_instance.get_user_login(user_id)[0]
+    username = database_instance.get_user_login(user_id)[0]
     user_info = database_instance.get_user_info(user_id)
     level = user_info[0]
     exp = user_info[1]
@@ -263,8 +269,9 @@ def get_user_data():
     user_interests = database_instance.get_user_interests(user_id)
     for val in user_interests:
         interests.append(val[0])
-    user_name = database_instance.get_user_login(user_id)[0]
-    elo = database_instance.get_user_elo(user_id)
+    elo = database_instance.get_user_elo(user_id)[0]
+    return ans
+
 
 
 
