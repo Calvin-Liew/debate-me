@@ -1,0 +1,9 @@
+{
+    "database": {
+        "dbname":"verceldb",
+        "user":"default",
+        "password":"sEHrS6eGC4An",
+        "host":"ep-damp-shape-a544ha2g-pooler.us-east-2.aws.neon.tech",
+        "port":"5432"
+    }
+  }
