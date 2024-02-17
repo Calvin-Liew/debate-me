@@ -13,7 +13,8 @@ with open("config.json") as f:
 
 
 
-openai.api_key = file["openai"]
+#openai.api_key = file["openai"]
+openai.api_key = env("openai")
 
 def generate_debate_prompts(gamemode, interested_subjects):
     prompts = {}
