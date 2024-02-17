@@ -43,15 +43,6 @@ def generate_debate_prompts(gamemode, interested_subjects):
 def next_level(level: int) -> int:
     return round((4 * (level ** 3)) / 5)
 
-def increaseElo(user_id, actual_outcome, gamemode="normal"):
-    cur_user_elo = database_instance.get_user_elo(user_id)[0]
-    expected_outcome = cur_user_elo // 100 + 1 if cur_user_elo <= 1000 else 10
-    if gamemode == "normal":
-        added_elo = cur_user_elo + actual_outcome - expected_outcome
-    else:
-        added_elo = cur_user_elo + 2 * (actual_outcome - expected_outcome)
-    database_instance.add_user_elo(user_id, added_elo)
-
 
 def judge_debate_content(user_id, debate_topic, user_beginning_debate, gpt_response, users_reply, difficulty,
                          gamemode="normal"):
@@ -217,15 +208,6 @@ def generate_response():
     user_id = data.get('user_id')
     return generate_opposing_response(debate_topic, user_transcript, user_id)
 
-@app.route('/add_user_elo', methods=['POST'])
-def add_elo():
-    data = request.json
-    user_id = data.get('user_id')
-    actual_outcome = data.get('actual_outcome')
-    gamemode = data.get('gamemode')
-    increaseElo(user_id, actual_outcome, gamemode)
-    return "elo added"
-
 @app.route('/create_user', methods=['POST'])
 def create_user():
     data = request.json
@@ -240,37 +222,51 @@ def create_user():
     database_instance.add_user_elo(user_id,200)
     return "user created"
 
+
+# needs testing
 @app.route('/get_leaderboard', methods=['GET'])
 def get_leaderboard():
-     response_arr = database_instance.get_top_5_elo()
-     ans = []
-     for x in range(5):
-         user_id = response_arr[x][0]
-         ans.append(response_arr)
+    """
+    returns back to you a leaderboard of all the top 5 students, base on elo
+    the format looks something like this:
+    {1:{"username": "Frank", "elo": 100, "dpa":4.0}, 2:{"username": "bob", "elo": 80, "dpa":3.2}}
+    """
+    response_arr = database_instance.get_top_5_elo()
+    ans = {}
+    for x in range(5):
+        user_id = response_arr[x][0]
+        user_ans = {}
+        user_ans["username"] = database_instance.get_user_login(user_id)[0]
+        user_ans["elo"] = database_instance.get_user_elo(user_id)[0]
+        user_ans["dpa"] = database_instance.get_user_winrate(user_id)[2]
+        ans[x+1] = user_ans
+    return ans
 
-# TODO: HOW DO I RETURN THIS PROPERLY BACK TO THEM?
+# needs testing
 @app.route('/get_user', methods=['GET', 'POST'])
 def get_user_data():
+    """
+    takes in a a user_id and returns back to you it's data formated in dictionary
+    with the keys: username, level, exp, win, losses, dpa, interests, elo
+    """
     data = request.json
-    #username, level, exp, win, losses, dpa, interests, elo
     ans = {}
     user_id = data.get('user_id')
     ans["username"] = database_instance.get_user_login(user_id)[0]
-    username = database_instance.get_user_login(user_id)[0]
     user_info = database_instance.get_user_info(user_id)
-    level = user_info[0]
-    exp = user_info[1]
+    ans["level"] = user_info[0]
+    ans["exp"] = user_info[1]
     user_winrate = database_instance.get_user_winrate(user_id)
-    win = user_winrate[0]
-    loss = user_winrate[1]
-    dpa = user_winrate[2]
+    ans["win"] = user_winrate[0]
+    ans["loss"] = user_winrate[1]
+    ans["dpa"] = user_winrate[2]
     interests = []
     user_interests = database_instance.get_user_interests(user_id)
     for val in user_interests:
         interests.append(val[0])
-    elo = database_instance.get_user_elo(user_id)[0]
+    ans["interests"] = interests
+    ans["elo"] = database_instance.get_user_elo(user_id)[0]
     return ans
-
 
 
 

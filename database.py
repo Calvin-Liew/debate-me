@@ -206,7 +206,8 @@ class database_conn:
 
     def get_top_5_elo(self) -> list:
         # write some random query that works
-        a = 0
+        self.cur.execute("SELECT user_id, elo FROM users_elo ORDER BY elo DESC LIMIT 5;")
+        return self.cur.fetchall()
 
 
     def _check_db(self) -> None:
