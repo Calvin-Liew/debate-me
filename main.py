@@ -47,6 +47,32 @@ def next_level(level: int) -> int:
     return round((4 * (level ** 3)) / 5)
 
 
+def is_relevent(user_beginning_debate, users_reply, debate_topic):
+    # Construct the prompt
+    prompt = {
+        "prompt": f"Based on the debate_topic '{debate_topic}' and the user's "
+                  f"arguments and replies in '{user_beginning_debate}' and '{users_reply}', "
+                  f"return true or false if the user's content is relevant to "
+                  f"the topic or not. ",
+        "temperature": 0.7,
+        "max_tokens": 50
+    }
+
+    # Generate the response from GPT model
+    response = openai.Completion.create(engine="gpt-3.5-turbo-instruct",
+                                        prompt=prompt["prompt"],
+                                        max_tokens=prompt["max_tokens"])
+
+    # Parse the response
+    response_text = response.choices[0].text.strip().lower()
+    if "true" in response_text:
+        return True
+    elif "false" in response_text:
+        return False
+    else:
+        # If the response does not contain a clear indication of true or
+        # false, return None
+        return None
 def judge_debate_content(user_id, debate_topic, user_beginning_debate,
                          gpt_response, users_reply,
                          gamemode="normal"):
@@ -59,7 +85,6 @@ def judge_debate_content(user_id, debate_topic, user_beginning_debate,
                   f"Argument Clarity: [Rating]\nDepth of Analysis: [Rating]\nCounterargument Consideration: [Rating]\n"
                   f"Engagement with Opposing Views: [Rating]\nLanguage and Tone: [Rating]\nCoherence and Flow: [Rating]\n"
                   f"Originality and Creativity: [Rating]\nAggregate Score: [Aggregate Score]\n\n"
-                  f"If the user's reply or arguments are inappropriate, offensive or not relevent, please take account of the marks accordingly, "
                   f"After evaluating, please structure your feedback in a JSON format. ",
         "temperature": 0.7,
         "max_tokens": 1000,
@@ -80,7 +105,9 @@ def judge_debate_content(user_id, debate_topic, user_beginning_debate,
     print(feedback_json.get('Aggregate Score'))
     aggregate_score = float(feedback_json.get('Aggregate Score'))
     # Deal with the win
-    if aggregate_score > difficulty_level:
+    if aggregate_score > difficulty_level and is_relevent(user_beginning_debate,
+                                                          users_reply,
+                                                          debate_topic):
         # increase the user's exp and levels if they win
         print("WINNER WINNER WINNER")
         if gamemode == "normal":
@@ -104,7 +131,7 @@ def judge_debate_content(user_id, debate_topic, user_beginning_debate,
             (new_wins / (new_wins + cur_user_wins[1])) * 4.0, 2)
         # new wins and DPA are saved
         database_instance.add_user_winrate(user_id, new_wins,
-                                       cur_user_wins[1], new_dpa)
+                                           cur_user_wins[1], new_dpa)
 
     # deal with the loss
     else:
@@ -113,13 +140,14 @@ def judge_debate_content(user_id, debate_topic, user_beginning_debate,
         new_loss = cur_user_wins[1] + 1
         # caculates the new DPA and rounds it off by 2 digits
         print(cur_user_wins[0])
-        print(cur_user_wins[0]+new_loss)
-        new_dpa = round((cur_user_wins[0] / (cur_user_wins[0] + new_loss)) * 4.0, 2)
+        print(cur_user_wins[0] + new_loss)
+        new_dpa = round(
+            (cur_user_wins[0] / (cur_user_wins[0] + new_loss)) * 4.0, 2)
         print()
         print((cur_user_wins[0] / (cur_user_wins[0] + new_loss)) * 4.0)
         # new wins and DPA are saved
         database_instance.add_user_winrate(user_id, cur_user_wins[0],
-                                       new_loss, new_dpa)
+                                           new_loss, new_dpa)
     # this handles the changes in user elo
     cur_elo = database_instance.get_user_elo(user_id)[0]
     elo_delta = aggregate_score - difficulty_level
@@ -144,7 +172,7 @@ def generate_opposing_response(debate_topic, user_transcript, user_id):
 
     # Prepare the JSON response with opposing response and expected outcome
     response_json = {
-        "opposing_response": response.choices[0].text.strip()
+        "opposing_response": response.choices[0].text.strip().strip('"')
     }
 
     return json.dumps(response_json, indent=4)
@@ -196,7 +224,7 @@ def index():
 
 @app.route('/generate_prompts', methods=['POST'])
 def generate_prompts():
-    data = request.json
+    data = request.get_json()
     gamemode = data.get('gamemode')
     interested_subjects = data.get('interested_subjects')
     return generate_debate_prompts(gamemode, interested_subjects)
