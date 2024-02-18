@@ -55,7 +55,7 @@ def judge_debate_content(user_id, debate_topic, user_beginning_debate, gpt_respo
                   f"content to support your feedback.\n\nPlease provide ratings for each category on a scale of 1 to 10 in the following format:\n"
                   f"Argument Clarity: [Rating]\nDepth of Analysis: [Rating]\nCounterargument Consideration: [Rating]\n"
                   f"Engagement with Opposing Views: [Rating]\nLanguage and Tone: [Rating]\nCoherence and Flow: [Rating]\n"
-                  f"Originality and Creativity: [Rating]\nAggregate Score: [Aggregate Score]\nExp gained: {exp}\n\n"
+                  f"Originality and Creativity: [Rating]\nAggregate Score: [Aggregate Score]\n\n"
                   f"After evaluating, please structure your feedback in a JSON format.The gamemode is {gamemode}, if its crazy, please mark harsher for user debate mistakes and give higher points for users positive debate attributes\n",
         "temperature": 0.7,
         "max_tokens": 1000,
