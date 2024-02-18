@@ -9,12 +9,15 @@ def test_generate_prompts():
         'gamemode': 'normal',
         'interested_subjects': 'politics'
     }
+
+
     response = requests.post(url, json=data)
     print(response.json())
 
 def test_judge_debate():
     url = f'{BASE_URL}/judge_debate_content'
     data = {
+        'user_id': 123,
         'debate_topic': "Should governments invest more in renewable energy?",
         'user_beginning_debate': ("Ladies and gentlemen, today we are faced with a pressing issue: the future of our planet and "
                                   "the sustainability of our energy sources. It is imperative that governments invest more in "
@@ -71,6 +74,7 @@ def test_judge_debate():
 def test_generate_opposing_response():
     url = f'{BASE_URL}/generate_opposing_response'
     data = {
+        'user_id': 123,
         'debate_topic': "Should governments invest more in renewable energy?",
         'user_transcript': (
             "Ladies and gentlemen, today we are faced with a pressing issue: the future of our planet and "
@@ -84,12 +88,20 @@ def test_generate_opposing_response():
             "economic growth in renewable energy industries. In conclusion, it is clear that governments "
             "must prioritize investment in renewable energy to secure a sustainable future for generations "
             "to come."),
-        'elo': 900
+    }
+    response = requests.post(url, json=data)
+    print(response.json())
+
+def test_get_user():
+    url = f'{BASE_URL}/get_user'
+    data = {
+        'user_id':123
     }
     response = requests.post(url, json=data)
     print(response.json())
 
 if __name__ == '__main__':
-    test_generate_prompts()
-    test_generate_opposing_response()
-    test_judge_debate()
+    #test_generate_prompts()
+    #test_generate_opposing_response()
+    #test_judge_debate()
+    test_get_user()
