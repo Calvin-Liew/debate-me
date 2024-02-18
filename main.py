@@ -258,7 +258,7 @@ def get_leaderboard():
 
 # TODO: needs to check
 # needs testing
-@app.route('/get_user', methods=['GET', 'POST'])
+@app.route('/get_user', methods=['POST'])
 def get_user_data():
     """
     takes in a a user_id and returns back to you it's data formated in dictionary
@@ -277,6 +277,7 @@ def get_user_data():
     ans["dpa"] = user_winrate[2]
     interests = []
     user_interests = database_instance.get_user_interests(user_id)
+    print(user_interests)
     for val in user_interests:
         interests.append(val[0])
     ans["interests"] = interests
