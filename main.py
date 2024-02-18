@@ -1,12 +1,16 @@
 from flask import Flask, request, jsonify
+from flask_cors import CORS, cross_origin
 import openai
 import json
 import database
 import os
 
+
 database_instance = database.database_conn()
 
 app = Flask(__name__)
+cors = CORS(app)
+app.config['CORS_HEADERS'] = 'Content-Type'
 
 with open("config.json") as f:
     file = json.load(f)
@@ -141,8 +145,6 @@ def generate_opposing_response(debate_topic, user_transcript, user_id):
     return json.dumps(response_json, indent=4)
 
 
-
-
 @app.route('/generate_debate_prompts', methods=['POST'])
 def generate_debate_prompts_route():
     data = request.get_json()
@@ -243,7 +245,7 @@ def get_leaderboard():
     return ans
 
 # needs testing
-@app.route('/get_user', methods=['GET', 'POST'])
+@app.route('/get_user', methods=['POST'])
 def get_user_data():
     """
     takes in a a user_id and returns back to you it's data formated in dictionary
