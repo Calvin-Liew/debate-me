@@ -51,9 +51,8 @@ def next_level(level: int) -> int:
 
 
 def judge_debate_content(user_id, debate_topic, user_beginning_debate,
-                         gpt_response, users_reply, difficulty,
+                         gpt_response, users_reply,
                          gamemode="normal"):
-
     prompt = {
         "prompt": f"Debate Topic: {debate_topic}\nUser's Beginning Debate:\n{user_beginning_debate}\nGPT Response:\n{gpt_response}\nUser's Reply to GPT Response:\n{users_reply}\n\n"
                   f"Please provide feedback and scores for the following categories:\n- Argument Clarity:\n- Depth of Analysis:\n- "
@@ -63,75 +62,77 @@ def judge_debate_content(user_id, debate_topic, user_beginning_debate,
                   f"Argument Clarity: [Rating]\nDepth of Analysis: [Rating]\nCounterargument Consideration: [Rating]\n"
                   f"Engagement with Opposing Views: [Rating]\nLanguage and Tone: [Rating]\nCoherence and Flow: [Rating]\n"
                   f"Originality and Creativity: [Rating]\nAggregate Score: [Aggregate Score]\n\n"
-                  f"After evaluating, please structure your feedback in a JSON format.The gamemode is {gamemode}, if its crazy, please mark harsher for user debate mistakes and give higher points for users positive debate attributes\n",
+                  f"If the user's reply or arguments are inappropriate, offensive or not relevent, please take account of the marks accordingly, "
+                  f"After evaluating, please structure your feedback in a JSON format. ",
         "temperature": 0.7,
         "max_tokens": 1000,
     }
 
-    try:
-        response = openai.Completion.create(
-            engine="gpt-3.5-turbo-instruct",
-            prompt=prompt['prompt'],
-            temperature=prompt['temperature'],
-            max_tokens=prompt['max_tokens'],
-        )
+    elo = database_instance.get_user_elo(user_id)[0]
+    difficulty_level = elo // 100 + 1 if elo <= 1000 else 10
 
-        response_json = response.choices[0].text.strip().rsplit('}', 1)[0] + '}'
-
-        feedback_json = json.loads(response_json)
-
-        feedback_json['feedback_text'] = response.choices[0].text.strip()
-        print(feedback_json.get('Aggregate Score'))
-        aggregate_score = feedback_json.get('Aggregate Score')
-
-        # Deal with the win
-        if aggregate_score > difficulty:
-            # increase the user's exp and levels if they win
-            if gamemode == "normal":
-                exp = 1000
-            else:
-                exp = 2000
-            cur_user_data = database_instance.get_user_info(user_id)
-            print(cur_user_data)
-            cur_exp = cur_user_data[1] + exp
-            cur_level = cur_user_data[0]
-            while cur_exp >= next_level(cur_level):
-                cur_exp -= next_level(cur_level)
-                cur_level += 1
-            database_instance.add_user_info(user_id, cur_level, cur_exp)
-
-            # add wins and losses
-            cur_user_wins = database_instance.get_user_winrate(user_id)
-            cur_user_wins[0] += 1
-            # caculates the new DPA and rounds it off by 2 digits
-            cur_user_wins[2] = round(
-                (cur_user_wins[0] / cur_user_wins[0] + cur_user_wins[1]) * 4.0,
-                2)
-
-        # deal with the loss
+    response = openai.Completion.create(
+        engine="gpt-3.5-turbo-instruct",
+        prompt=prompt['prompt'],
+        temperature=prompt['temperature'],
+        max_tokens=prompt['max_tokens'],
+    )
+    response_json = response.choices[0].text.strip().rsplit('}', 1)[0] + '}'
+    feedback_json = json.loads(response_json)
+    feedback_json['feedback_text'] = response.choices[0].text.strip()
+    print(feedback_json.get('Aggregate Score'))
+    aggregate_score = float(feedback_json.get('Aggregate Score'))
+    # Deal with the win
+    if aggregate_score > difficulty_level:
+        # increase the user's exp and levels if they win
+        print("WINNER WINNER WINNER")
+        if gamemode == "normal":
+            exp = 1000
         else:
-            cur_user_wins = database_instance.get_user_winrate(user_id)
-            cur_user_wins[1] += 1
-            # caculates the new DPA and rounds it off by 2 digits
-            cur_user_wins[2] = round(
-                (cur_user_wins[0] / cur_user_wins[0] + cur_user_wins[1]) * 4.0,
-                2)
+            exp = 2000
+        cur_user_data = database_instance.get_user_info(user_id)
+        print(cur_user_data)
+        cur_exp = cur_user_data[1] + exp
+        cur_level = cur_user_data[0]
+        while cur_exp >= next_level(cur_level):
+            cur_exp -= next_level(cur_level)
+            cur_level += 1
+        database_instance.add_user_info(user_id, cur_level, cur_exp)
 
+        # add wins and losses
+        cur_user_wins = database_instance.get_user_winrate(user_id)
+        new_wins = cur_user_wins[0] + 1
+        # caculates the new DPA and rounds it off by 2 digits
+        new_dpa = round(
+            (new_wins / (new_wins + cur_user_wins[1])) * 4.0, 2)
+        # new wins and DPA are saved
+        database_instance.add_user_winrate(user_id, new_wins,
+                                       cur_user_wins[1], new_dpa)
+
+    # deal with the loss
+    else:
+        print("LOSER LOSER LOSER")
+        cur_user_wins = database_instance.get_user_winrate(user_id)
+        new_loss = cur_user_wins[1] + 1
+        # caculates the new DPA and rounds it off by 2 digits
+        print(cur_user_wins[0])
+        print(cur_user_wins[0]+new_loss)
+        new_dpa = round((cur_user_wins[0] / (cur_user_wins[0] + new_loss)) * 4.0, 2)
+        print()
+        print((cur_user_wins[0] / (cur_user_wins[0] + new_loss)) * 4.0)
         # new wins and DPA are saved
         database_instance.add_user_winrate(user_id, cur_user_wins[0],
-                                           cur_user_wins[1], cur_user_wins[2])
-        # this handles the changes in user elo
-        cur_elo = database_instance.get_user_elo(user_id)[0]
-        elo_delta = aggregate_score - difficulty
-        if gamemode == "crazy":
-            elo_delta *= 2
-        database_instance.add_user_elo(user_id, cur_elo + elo_delta)
-        return feedback_json
-    except Exception as e:
-        print(f"Error analyzing debate content: {e}")
-        return None
+                                       new_loss, new_dpa)
+    # this handles the changes in user elo
+    cur_elo = database_instance.get_user_elo(user_id)[0]
+    elo_delta = aggregate_score - difficulty_level
+    if gamemode == "crazy":
+        elo_delta *= 2
+    database_instance.add_user_elo(user_id, cur_elo + elo_delta)
+    return feedback_json
 
 
+# This is fine
 def generate_opposing_response(debate_topic, user_transcript, user_id):
     elo = database_instance.get_user_elo(user_id)[0]
     difficulty_level = elo // 100 + 1 if elo <= 1000 else 10
@@ -152,7 +153,8 @@ def generate_opposing_response(debate_topic, user_transcript, user_id):
     return json.dumps(response_json, indent=4)
 
 
-@app.route('/generate_debate_prompts', methods=['POST'])
+# This is fine
+@app.route('/generate_debate_prompts', methods=['GET', 'POST'])
 def generate_debate_prompts_route():
     data = request.get_json()
     gamemode = data.get('gamemode')
@@ -162,15 +164,15 @@ def generate_debate_prompts_route():
     return jsonify(prompts)
 
 
-@app.route('/judge_debate_content', methods=['POST'])
+@app.route('/judge_debate_content', methods=['GET', 'POST'])
 def judge_debate_content_route():
     data = request.get_json()
+    user_id = data.get('user_id')
     debate_topic = data.get('debate_topic')
     user_beginning_debate = data.get('user_beginning_debate')
     gpt_response = data.get('gpt_response')
     users_reply = data.get('users_reply')
-    gamemode = data.get('gamemode', 'normal')
-    user_id = 123
+    gamemode = data.get('gamemode')
     feedback = judge_debate_content(user_id, debate_topic,
                                     user_beginning_debate, gpt_response,
                                     users_reply, gamemode)
@@ -191,7 +193,8 @@ def generate_opposing_response_route():
 
 @app.route('/')
 def index():
-    return 'hello world'
+    response = {'check': 'success'}
+    return jsonify(response)
 
 
 @app.route('/generate_prompts', methods=['POST'])
@@ -202,7 +205,7 @@ def generate_prompts():
     return generate_debate_prompts(gamemode, interested_subjects)
 
 
-@app.route('/judge_debate', methods=['POST'])
+@app.route('/judge_debate', methods=['GET', 'POST'])
 def judge_debate():
     data = request.json
     user_id = data.get('user_id')
@@ -211,9 +214,8 @@ def judge_debate():
     gpt_response = data.get('gpt_response')
     users_reply = data.get('users_reply')
     gamemode = data.get('gamemode')
-    return jsonify(
-        judge_debate_content(user_id, debate_topic, user_beginning_debate,
-                             gpt_response, users_reply, gamemode))
+    return judge_debate_content(user_id, debate_topic, user_beginning_debate,
+                                gpt_response, users_reply, gamemode)
 
 
 @app.route('/generate_opposing_response', methods=['POST'])
@@ -233,12 +235,12 @@ def create_user():
     username = data.get("username")
     interests = data.get("interests")
     database_instance.add_user_login(user_id, username)
+    database_instance.delete_all_interests(user_id)
     for user_interest in interests:
         database_instance.add_user_interest(user_id, user_interest)
     database_instance.add_user_winrate(user_id, 0, 0, 0.0)
     database_instance.add_user_info(user_id, 1, 0)
     database_instance.add_user_elo(user_id, 200)
-    return "user created"
 
 
 # TODO: needs to check
@@ -252,14 +254,14 @@ def get_leaderboard():
     """
     response_arr = database_instance.get_top_5_elo()
     ans = {}
-    for x in range(5):
+    for x in range(3):
         user_id = response_arr[x][0]
         user_ans = {}
         user_ans["username"] = database_instance.get_user_login(user_id)[0]
         user_ans["elo"] = database_instance.get_user_elo(user_id)[0]
         user_ans["dpa"] = database_instance.get_user_winrate(user_id)[2]
         ans[x + 1] = user_ans
-    return ans
+    return jsonify(ans)
 
 
 # TODO: needs to check
@@ -283,7 +285,6 @@ def get_user_data():
     ans["dpa"] = user_winrate[2]
     interests = []
     user_interests = database_instance.get_user_interests(user_id)
-    print(user_interests)
     for val in user_interests:
         interests.append(val[0])
     ans["interests"] = interests

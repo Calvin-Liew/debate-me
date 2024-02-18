@@ -209,6 +209,13 @@ class database_conn:
         self.cur.execute("SELECT user_id, elo FROM users_elo ORDER BY elo DESC LIMIT 5;")
         return self.cur.fetchall()
 
+    def delete_all_interests(self,user_id:str) -> None:
+        try:
+            self.cur.execute("DELETE FROM users_interests WHERE user_id = %s;", (user_id,))
+            self.conn.commit()
+        except Exception as e:
+            self.conn.rollback()
+            print("Error deleting user interests:", e)
 
     def _check_db(self) -> None:
         # don't use this function, only used for testing
