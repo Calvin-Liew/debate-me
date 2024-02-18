@@ -175,7 +175,7 @@ def generate_opposing_response(debate_topic, user_transcript, user_id):
         "opposing_response": response.choices[0].text.strip().strip('"')
     }
 
-    return json.dumps(response_json, indent=4)
+    return jsonify(response_json)
 
 
 # This is fine
