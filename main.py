@@ -91,7 +91,7 @@ def judge_debate_content(user_id, debate_topic, user_beginning_debate,
     }
 
     elo = database_instance.get_user_elo(user_id)[0]
-    difficulty_level = elo // 100 + 1 if elo <= 1000 else 10
+    difficulty_level = min(elo // 100 + 1, 10)
 
     response = openai.Completion.create(
         engine="gpt-3.5-turbo-instruct",
@@ -266,6 +266,15 @@ def create_user():
     database_instance.add_user_winrate(user_id, 0, 0, 0.0)
     database_instance.add_user_info(user_id, 1, 0)
     database_instance.add_user_elo(user_id, 200)
+
+@app.route("/remove_interests", methods=['POST'])
+def remove_interests():
+    data = request.json
+    user_id = data.get('user_id')
+    interests = data.get("interests")
+    database_instance.delete_all_interests(user_id)
+    for user_interest in interests:
+        database_instance.add_user_interest(user_id, user_interest)
 
 
 # TODO: needs to check
