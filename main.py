@@ -282,7 +282,7 @@ def get_user_data():
         interests.append(val[0])
     ans["interests"] = interests
     ans["elo"] = database_instance.get_user_elo(user_id)[0]
-    return ans
+    return jsonify(ans)
 
 
 if __name__ == "__main__":
