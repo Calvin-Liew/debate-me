@@ -23,7 +23,6 @@ class database_conn:
             host=database_host,
             port=database_port
         )
-        self.cur = self.conn.cursor()
 
         # prevents errors of corrupting the conn from previous runs
         self.conn.rollback()
@@ -32,17 +31,7 @@ class database_conn:
 
         self._create_tables()
 
-        self.conn.close()
-
     def _create_tables(self):
-        # establishes connection to the database server
-        self.conn = psycopg2.connect(
-            dbname=database_name,
-            user=username,
-            password=database_password,
-            host=database_host,
-            port=database_port
-        )
         self.cur = self.conn.cursor()
         try:
             self.cur.execute("CREATE TABLE IF NOT EXISTS users_login (user_id VARCHAR(50) PRIMARY KEY, username VARCHAR(255) NOT NULL);")
@@ -52,12 +41,10 @@ class database_conn:
             self.cur.execute("CREATE TABLE IF NOT EXISTS users_elo (user_id VARCHAR(50) PRIMARY KEY, elo INTEGER NOT NULL);")
             print("Databases created successfully")
             self.cur.close()
-            self.conn.close()
         except ProgrammingError as e:
             print("Error creating tables:", e)
             self.cur.close()
             self.conn.rollback()
-            self.conn.close()
 
     def get_all_user(self) -> list:
         """
@@ -65,19 +52,10 @@ class database_conn:
 
         format of the output: [(125,)]
         """
-        # establishes connection to the database server
-        self.conn = psycopg2.connect(
-            dbname=database_name,
-            user=username,
-            password=database_password,
-            host=database_host,
-            port=database_port
-        )
         self.cur = self.conn.cursor()
         self.cur.execute("SELECT user_id FROM users_login")
         responses = self.cur.fetchall()
         self.cur.close()
-        self.conn.close()
         return responses
 
     def add_user_login(self, user_id: str, username: str):
@@ -90,13 +68,6 @@ class database_conn:
             password (str): The password of the user.
         """
         # establishes connection to the database server
-        self.conn = psycopg2.connect(
-            dbname=database_name,
-            user=username,
-            password=database_password,
-            host=database_host,
-            port=database_port
-        )
         self.cur = self.conn.cursor()
 
         # Check if the user exists
@@ -110,7 +81,6 @@ class database_conn:
             self.cur.execute("UPDATE users_login SET username = %s WHERE user_id = %s;", (username, user_id))
         self.conn.commit()
         self.cur.close()
-        self.conn.close()
 
     def add_user_elo(self, user_id: str, elo: int):
         """
@@ -120,14 +90,6 @@ class database_conn:
             user_id (int): The ID of the user.
             elo (int): The elo of the user.
         """
-        # establishes connection to the database server
-        self.conn = psycopg2.connect(
-            dbname=database_name,
-            user=username,
-            password=database_password,
-            host=database_host,
-            port=database_port
-        )
         self.cur = self.conn.cursor()
 
         self.cur.execute("SELECT COUNT(*) FROM users_elo WHERE user_id = %s;", (user_id,))
@@ -138,7 +100,6 @@ class database_conn:
             self.cur.execute("UPDATE users_elo SET elo = %s WHERE user_id = %s;", (elo, user_id))
         self.conn.commit()
         self.cur.close()
-        self.conn.close()
 
 
     def add_user_info(self, user_id: str, level: int, exp: int):
@@ -150,14 +111,6 @@ class database_conn:
             level (int): The level of the user.
             exp (int): The experience points of the user.
         """
-        # establishes connection to the database server
-        self.conn = psycopg2.connect(
-            dbname=database_name,
-            user=username,
-            password=database_password,
-            host=database_host,
-            port=database_port
-        )
         self.cur = self.conn.cursor()
 
         # Check if the user exists
@@ -172,7 +125,6 @@ class database_conn:
         self.conn.commit()
 
         self.cur.close()
-        self.conn.close()
 
     def add_user_winrate(self, user_id: str, wins: int, losses: int, dpa: float):
         """
@@ -184,14 +136,6 @@ class database_conn:
             losses (int): The number of losses of the user.
             dpa (float): The damage per attack of the user.
         """
-        # establishes connection to the database server
-        self.conn = psycopg2.connect(
-            dbname=database_name,
-            user=username,
-            password=database_password,
-            host=database_host,
-            port=database_port
-        )
         self.cur = self.conn.cursor()
 
         # Check if the user exists
@@ -206,7 +150,6 @@ class database_conn:
         self.conn.commit()
 
         self.cur.close()
-        self.conn.close()
 
     def add_user_interest(self, user_id: str, interest: str):
         """
@@ -216,14 +159,6 @@ class database_conn:
             user_id (int): The ID of the user.
             interest (str): The interest of the user.
         """
-        # establishes connection to the database server
-        self.conn = psycopg2.connect(
-            dbname=database_name,
-            user=username,
-            password=database_password,
-            host=database_host,
-            port=database_port
-        )
         self.cur = self.conn.cursor()
 
         self.cur.execute("SELECT COUNT(*) FROM users_interests WHERE user_id = %s AND interest = %s;", (user_id, interest))
@@ -234,7 +169,6 @@ class database_conn:
             self.conn.commit()
 
         self.cur.close()
-        self.conn.close()
 
 
     def get_user_login(self, user_id: str):
@@ -246,21 +180,12 @@ class database_conn:
         Returns:
             tuple: A tuple containing the username and password of the user.
         """
-                # establishes connection to the database server
-        self.conn = psycopg2.connect(
-            dbname=database_name,
-            user=username,
-            password=database_password,
-            host=database_host,
-            port=database_port
-        )
         self.cur = self.conn.cursor()
 
         self.cur.execute("SELECT username FROM users_login WHERE user_id = %s;", (user_id,))
         response = self.cur.fetchone()
 
         self.cur.close()
-        self.conn.close()
         return response
 
     def get_user_info(self, user_id: str) -> tuple:
@@ -272,38 +197,19 @@ class database_conn:
         Returns:
             tuple: A tuple containing the level, experience points, and maximum experience points of the user.
         """
-
-        # establishes connection to the database server
-        self.conn = psycopg2.connect(
-            dbname=database_name,
-            user=username,
-            password=database_password,
-            host=database_host,
-            port=database_port
-        )
         self.cur = self.conn.cursor()
         self.cur.execute("SELECT level, exp FROM users_info WHERE user_id = %s;", (user_id,))
         response = self.cur.fetchone()
         self.cur.close()
-        self.conn.close()
 
         return response
 
     def get_user_elo(self, user_id: str) -> tuple:
         # do something here
-        # establishes connection to the database server
-        self.conn = psycopg2.connect(
-            dbname=database_name,
-            user=username,
-            password=database_password,
-            host=database_host,
-            port=database_port
-        )
         self.cur = self.conn.cursor()
         self.cur.execute("SELECT elo FROM users_elo WHERE user_id = %s;", (user_id,))
         response = self.cur.fetchone()
         self.cur.close()
-        self.conn.close()
         return response
 
     def get_user_winrate(self, user_id: str) -> tuple:
@@ -315,19 +221,10 @@ class database_conn:
         Returns:
             tuple: A tuple containing the number of wins, losses, and debate point average of the user.
         """
-        # establishes connection to the database server
-        self.conn = psycopg2.connect(
-            dbname=database_name,
-            user=username,
-            password=database_password,
-            host=database_host,
-            port=database_port
-        )
         self.cur = self.conn.cursor()
         self.cur.execute("SELECT wins, losses, dpa FROM users_winrate WHERE user_id = %s;", (user_id,))
         response = self.cur.fetchone()
         self.cur.close()
-        self.conn.close()
         return response
 
     def get_user_interests(self, user_id: str) -> list:
@@ -338,35 +235,17 @@ class database_conn:
         Returns:
             list: A list of tuples containing the user interests.
         """
-
-        # establishes connection to the database server
-        self.conn = psycopg2.connect(
-            dbname=database_name,
-            user=username,
-            password=database_password,
-            host=database_host,
-            port=database_port
-        )
         self.cur = self.conn.cursor()
 
         self.cur.execute("SELECT interest FROM users_interests WHERE user_id = %s;", (user_id,))
         response = self.cur.fetchall()
 
         self.cur.close()
-        self.conn.close()
 
         return response
 
     def get_top_5_elo(self) -> list:
         # write some random query that works
-        # establishes connection to the database server
-        self.conn = psycopg2.connect(
-            dbname=database_name,
-            user=username,
-            password=database_password,
-            host=database_host,
-            port=database_port
-        )
         self.cur = self.conn.cursor()
 
         self.cur.execute("SELECT user_id, elo FROM users_elo ORDER BY elo DESC LIMIT 5;")
@@ -374,19 +253,10 @@ class database_conn:
         response = self.cur.fetchall()
 
         self.cur.close()
-        self.conn.close()
     
         return response
 
     def delete_all_interests(self,user_id:str) -> None:
-        # establishes connection to the database server
-        self.conn = psycopg2.connect(
-            dbname=database_name,
-            user=username,
-            password=database_password,
-            host=database_host,
-            port=database_port
-        )
         self.cur = self.conn.cursor()
 
         try:
@@ -395,23 +265,12 @@ class database_conn:
         except Exception as e:
             self.conn.rollback()
             self.cur.close()
-            self.conn.close()
             print("Error deleting user interests:", e)
         self.cur.close()
-        self.conn.close()
 
 
     def _check_db(self) -> None:
         # don't use this function, only used for testing
-
-        # establishes connection to the database server
-        self.conn = psycopg2.connect(
-            dbname=database_name,
-            user=username,
-            password=database_password,
-            host=database_host,
-            port=database_port
-        )
         self.cur = self.conn.cursor()
 
         self.cur.execute("SELECT * FROM users_login");
@@ -420,18 +279,8 @@ class database_conn:
             print(thing)
 
         self.cur.close()
-        self.conn.close()
 
     def _delete_all_tables(self) -> None:
-
-        # establishes connection to the database server
-        self.conn = psycopg2.connect(
-            dbname=database_name,
-            user=username,
-            password=database_password,
-            host=database_host,
-            port=database_port
-        )
         self.cur = self.conn.cursor()
 
         # don't use this function, only used for testing
@@ -442,4 +291,7 @@ class database_conn:
         self.cur.execute("DROP TABLE IF EXISTS users_elo;")
 
         self.cur.close()
+
+    def close_db_conn(self) -> None:
+        """ closes the database connection """
         self.conn.close()

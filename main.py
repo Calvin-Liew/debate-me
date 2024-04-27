@@ -5,9 +5,6 @@ import json
 import database
 import os
 
-
-database_instance = database.database_conn()
-
 app = Flask(__name__)
 cors = CORS(app)
 app.config['CORS_HEADERS'] = 'Content-Type'
@@ -79,6 +76,7 @@ def is_relevent(user_beginning_debate, users_reply, debate_topic):
 def judge_debate_content(user_id, debate_topic, user_beginning_debate,
                          gpt_response, users_reply,
                          gamemode="normal"):
+    database_instance = database.database_conn()
     prompt = {
         "prompt": f"Debate Topic: {debate_topic}\nUser's Beginning Debate:\n{user_beginning_debate}\nGPT Response:\n{gpt_response}\nUser's Reply to GPT Response:\n{users_reply}\n\n"
                   f"Please provide feedback and scores for the following categories:\n- Argument Clarity:\n- Depth of Analysis:\n- "
@@ -157,11 +155,13 @@ def judge_debate_content(user_id, debate_topic, user_beginning_debate,
     if gamemode == "crazy":
         elo_delta *= 2
     database_instance.add_user_elo(user_id, cur_elo + elo_delta)
+    database_instance.close_db_conn()
     return feedback_json
 
 
 # This is fine
 def generate_opposing_response(debate_topic, user_transcript, user_id):
+    database_instance = database.database_conn()
     elo = database_instance.get_user_elo(user_id)[0]
     difficulty_level = elo // 100 + 1 if elo <= 1000 else 10
 
@@ -177,7 +177,7 @@ def generate_opposing_response(debate_topic, user_transcript, user_id):
     response_json = {
         "opposing_response": response.choices[0].text.strip().strip('"')
     }
-
+    database_instance.close_db_conn()
     return response_json
 
 
@@ -258,6 +258,7 @@ def generate_response():
 # TODO: needs to check
 @app.route('/create_user', methods=['POST'])
 def create_user():
+    database_instance = database.database_conn()
     data = request.json
     user_id = data.get('user_id')
     username = data.get("username")
@@ -269,15 +270,18 @@ def create_user():
     database_instance.add_user_winrate(user_id, 0, 0, 0.0)
     database_instance.add_user_info(user_id, 1, 0)
     database_instance.add_user_elo(user_id, 200)
+    database_instance.close_db_conn()
 
 @app.route("/remove_interests", methods=['POST'])
 def remove_interests():
+    database_instance = database.database_conn()
     data = request.json
     user_id = data.get('user_id')
     interests = data.get("interests")
     database_instance.delete_all_interests(user_id)
     for user_interest in interests:
         database_instance.add_user_interest(user_id, user_interest)
+    database_instance.close_db_conn()
 
 
 # TODO: needs to check
@@ -289,6 +293,7 @@ def get_leaderboard():
     the format looks something like this:
     {1:{"username": "Frank", "elo": 100, "dpa":4.0}, 2:{"username": "bob", "elo": 80, "dpa":3.2}}
     """
+    database_instance = database.database_conn()
     response_arr = database_instance.get_top_5_elo()
     ans = {}
     for x in range(3):
@@ -298,6 +303,7 @@ def get_leaderboard():
         user_ans["elo"] = database_instance.get_user_elo(user_id)[0]
         user_ans["dpa"] = database_instance.get_user_winrate(user_id)[2]
         ans[x + 1] = user_ans
+    database_instance.close_db_conn()
     return jsonify(ans)
 
 
@@ -309,6 +315,7 @@ def get_user_data():
     takes in a a user_id and returns back to you it's data formated in dictionary
     with the keys: username, level, exp, win, losses, dpa, interests, elo
     """
+    database_instance = database.database_conn()
     data = request.json
     ans = {}
     user_id = data.get('user_id')
@@ -326,6 +333,7 @@ def get_user_data():
         interests.append(val[0])
     ans["interests"] = interests
     ans["elo"] = database_instance.get_user_elo(user_id)[0]
+    database_instance.close_db_conn()
     return jsonify(ans)
 
 
